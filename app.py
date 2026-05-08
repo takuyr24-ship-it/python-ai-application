@@ -5,7 +5,7 @@ import os
 import html
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
 
 st.set_page_config(
     page_title="AI Writing Tool",
@@ -434,6 +434,12 @@ code {
 
 # ─── API クライアント ──────────────────────────────────────────────────────
 def get_api_key():
+    try:
+        key = st.secrets.get("GEMINI_API_KEY", "")
+        if key:
+            return key
+    except Exception:
+        pass
     return os.getenv("GEMINI_API_KEY") or st.session_state.get("api_key", "")
 
 def call_gpt(system: str, user: str, model: str = "gemini-2.5-flash", temperature: float = 0.7) -> str:
