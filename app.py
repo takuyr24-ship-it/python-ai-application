@@ -445,19 +445,31 @@ def get_api_key():
 def call_gpt(system: str, user: str, model: str = "gemini-2.5-flash", temperature: float = 0.7) -> str:
     key = get_api_key()
     if not key:
-        st.error("APIキーが設定されていません。サイドバーから入力してください。")
+        st.error("APIキーが設定されていません。サイドバーに Gemini API Key を入力するか、Streamlit Cloud の Secrets に GEMINI_API_KEY を登録してください。")
         return ""
     client = genai.Client(api_key=key)
-    with st.spinner("生成中..."):
-        response = client.models.generate_content(
-            model=model,
-            contents=user,
-            config=types.GenerateContentConfig(
-                system_instruction=system,
-                temperature=temperature,
-            ),
-        )
-    return response.text.strip()
+    try:
+        with st.spinner("生成中..."):
+            response = client.models.generate_content(
+                model=model,
+                contents=user,
+                config=types.GenerateContentConfig(
+                    system_instruction=system,
+                    temperature=temperature,
+                ),
+            )
+        return response.text.strip()
+    except Exception as e:
+        err = str(e)
+        if "API_KEY" in err.upper() or "401" in err or "403" in err:
+            st.error("APIキーが無効です。正しい Gemini API Key を設定してください。")
+        elif "429" in err or "QUOTA" in err.upper():
+            st.error("APIの利用制限に達しました。しばらく待ってから再試行してください。")
+        elif "404" in err or "not found" in err.lower():
+            st.error(f"モデル '{model}' が見つかりません。サイドバーで別のモデルを選択してください。")
+        else:
+            st.error(f"エラーが発生しました: {e}")
+        return ""
 
 # ─── サイドバー ──────────────────────────────────────────────────────────────
 TOOLS = {
