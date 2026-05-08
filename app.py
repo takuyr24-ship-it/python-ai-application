@@ -272,6 +272,11 @@ button[data-testid="baseButton-primary"]:hover,
     box-shadow: 0 3px 14px rgba(45,90,142,0.28) !important;
     transform: translateY(-1px) !important;
 }
+button[data-testid="baseButton-primary"] p,
+button[data-testid="baseButton-primary"] span,
+button[data-testid="baseButton-primary"] [data-testid="stMarkdownContainer"] {
+    color: #FFFFFF !important;
+}
 
 /* ─ Secondary / download button ────────────────────────────────────── */
 button[data-testid="baseButton-secondary"],
