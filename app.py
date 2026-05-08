@@ -462,6 +462,7 @@ TOOLS = {
     "📱 SNS投稿文生成":    "sns",
     "🔍 校正・改善提案":   "proofread",
     "🔒 セキュリティチェック": "security",
+    "🌐 翻訳":             "translate",
 }
 
 with st.sidebar:
@@ -837,6 +838,79 @@ def page_security():
             st.download_button("レポートをダウンロード", result,
                                file_name="security_report.txt", mime="text/plain")
 
+# ─── 翻訳 ───────────────────────────────────────────────────────────────────
+def page_translate():
+    st.markdown('<p class="tool-header">🌐 翻訳</p>', unsafe_allow_html=True)
+    st.markdown('<p class="tool-desc">テキストを指定の言語に翻訳します。文体や用途に合わせた翻訳スタイルを選べます。</p>',
+                unsafe_allow_html=True)
+
+    text = st.text_area("翻訳したいテキスト *", height=220,
+                         placeholder="ここに翻訳したいテキストを入力してください...", max_chars=5000)
+
+    col1, col2 = st.columns(2)
+    with col1:
+        source_lang = st.selectbox("翻訳元の言語",
+            ["自動検出", "日本語", "英語", "中国語（簡体字）", "中国語（繁体字）",
+             "韓国語", "フランス語", "ドイツ語", "スペイン語", "ポルトガル語",
+             "イタリア語", "ロシア語", "アラビア語"])
+        style = st.selectbox("翻訳スタイル",
+            ["自然・読みやすい", "直訳（原文に忠実）", "ビジネス・フォーマル",
+             "カジュアル・口語", "学術・論文調"])
+    with col2:
+        target_lang = st.selectbox("翻訳先の言語",
+            ["英語", "日本語", "中国語（簡体字）", "中国語（繁体字）",
+             "韓国語", "フランス語", "ドイツ語", "スペイン語", "ポルトガル語",
+             "イタリア語", "ロシア語", "アラビア語"])
+        show_notes = st.checkbox("翻訳メモを表示（文化的ニュアンスや注意点）", value=False)
+
+    if st.button("翻訳する", type="primary", use_container_width=True):
+        if not text:
+            st.warning("翻訳するテキストを入力してください。")
+            return
+        if source_lang != "自動検出" and source_lang == target_lang:
+            st.warning("翻訳元と翻訳先の言語が同じです。")
+            return
+
+        notes_instruction = (
+            "\n\n翻訳後に「📝 翻訳メモ」として、文化的ニュアンス・慣用表現・翻訳上の注意点を簡潔に補足してください。"
+            if show_notes else ""
+        )
+        sys_prompt = f"""あなたはプロの翻訳者です。原文の意味・ニュアンス・文体を正確に伝える翻訳を行います。
+
+【翻訳の原則】
+- 原文の意図と雰囲気を最優先に保つ
+- 直訳ではなく、翻訳先言語として自然な表現を使う（スタイルが「直訳」の場合を除く）
+- 固有名詞・専門用語は適切に処理する
+- 段落構成・改行・リストなどの書式を維持する{notes_instruction}"""
+
+        user_prompt = f"""以下のテキストを翻訳してください。
+
+【翻訳元の言語】: {source_lang}
+【翻訳先の言語】: {target_lang}
+【翻訳スタイル】: {style}
+
+【テキスト】
+{text}
+
+翻訳結果のみを出力してください（翻訳メモがある場合はその後に続けてください）。"""
+
+        result = call_gpt(sys_prompt, user_prompt, model=model, temperature=0.3)
+        if result:
+            st.success("翻訳完了！")
+            st.markdown("---")
+            col_a, col_b = st.columns(2)
+            with col_a:
+                st.subheader(f"原文（{source_lang}）")
+                st.markdown(f'<div class="output-box">{html.escape(text)}</div>',
+                            unsafe_allow_html=True)
+            with col_b:
+                st.subheader(f"翻訳（{target_lang}）")
+                st.markdown(f'<div class="output-box">{html.escape(result)}</div>',
+                            unsafe_allow_html=True)
+            st.download_button("翻訳結果をダウンロード", result,
+                               file_name="translation.txt", mime="text/plain")
+
+
 # ─── ページ描画 ──────────────────────────────────────────────────────────────
 pages = {
     "blog":      page_blog,
@@ -846,5 +920,6 @@ pages = {
     "sns":       page_sns,
     "proofread": page_proofread,
     "security":  page_security,
+    "translate": page_translate,
 }
 pages[tool]()
