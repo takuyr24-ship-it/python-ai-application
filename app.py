@@ -461,7 +461,6 @@ TOOLS = {
     "🎨 文体・トーン変換": "tone",
     "📱 SNS投稿文生成":    "sns",
     "🔍 校正・改善提案":   "proofread",
-    "🔒 セキュリティチェック": "security",
     "🌐 翻訳":             "translate",
 }
 
@@ -475,7 +474,7 @@ with st.sidebar:
     st.divider()
 
     if "api_key" not in st.session_state:
-        st.session_state.api_key = ""
+        st.session_state.api_key = os.getenv("GEMINI_API_KEY", "")
     api_input = st.text_input("Gemini API Key", value=st.session_state.api_key,
                                type="password", placeholder="AIza...")
     if api_input:
@@ -773,71 +772,6 @@ def page_proofread():
             st.download_button("結果をダウンロード", result,
                                file_name="proofread.txt", mime="text/plain")
 
-# ─── セキュリティチェック ────────────────────────────────────────────────────
-def page_security():
-    st.markdown('<p class="tool-header">🔒 セキュリティチェック</p>', unsafe_allow_html=True)
-    st.markdown('<p class="tool-desc">コードや文章に含まれるセキュリティリスクをAIが検出・解説します。</p>',
-                unsafe_allow_html=True)
-
-    code_input = st.text_area("チェックするコード・テキスト *", height=280,
-                               placeholder="ここにコードや文章を貼り付けてください...", max_chars=10000)
-    col1, col2 = st.columns(2)
-    with col1:
-        content_type = st.selectbox("コンテンツの種類",
-            ["Pythonコード", "JavaScriptコード", "SQLクエリ", "HTMLテンプレート",
-             "シェルスクリプト", "その他テキスト"])
-        check_categories = st.multiselect("チェックカテゴリ",
-            ["インジェクション攻撃（SQL・コマンド・XSS）", "認証・認可の問題",
-             "機密情報の露出（APIキー・パスワード）", "安全でない設定・依存関係",
-             "入力バリデーション不足", "暗号化・ハッシュの問題"],
-            default=["インジェクション攻撃（SQL・コマンド・XSS）",
-                     "機密情報の露出（APIキー・パスワード）",
-                     "入力バリデーション不足"])
-    with col2:
-        severity_filter = st.selectbox("報告する深刻度",
-            ["すべて（情報・低・中・高・致命的）", "中以上（中・高・致命的）", "高以上（高・致命的）のみ"])
-        output_detail = st.selectbox("出力の詳細度",
-            ["詳細（問題点・リスク・修正例を含む）", "標準（問題点とリスクのみ）", "概要（問題点の一覧のみ）"])
-
-    if st.button("セキュリティチェックを実行する", type="primary", use_container_width=True):
-        if not code_input:
-            st.warning("チェックするコード・テキストを入力してください。")
-            return
-        sys_prompt = """あなたはセキュリティの専門家（セキュリティエンジニア・ペネトレーションテスター）です。
-提供されたコードや文章を分析し、セキュリティ上の問題点を特定・報告してください。
-
-【報告フォーマット】
-各問題は以下の形式で報告する：
-- **[深刻度] 問題タイトル**
-  - **場所**: 何行目や何の部分か
-  - **リスク**: どのような攻撃や問題が起きるか
-  - **修正例**: 安全なコード例や対処法（詳細度が「詳細」の場合のみ）
-
-深刻度の定義:
-- 🔴 致命的: 即座に悪用可能、深刻な被害
-- 🟠 高: 容易に悪用可能、重大な被害
-- 🟡 中: 条件次第で悪用可能
-- 🟢 低: 軽微なリスクまたは理論的な問題
-- ℹ️ 情報: ベストプラクティス違反
-
-問題が見つからない場合は「✅ セキュリティ上の問題は検出されませんでした」と報告する。
-報告の最後に「📊 サマリー」として問題数の集計と総合評価を記載する。"""
-        user_prompt = f"""以下の{content_type}をセキュリティチェックしてください。
-
-【チェックカテゴリ】: {', '.join(check_categories) if check_categories else 'すべて'}
-【報告する深刻度】: {severity_filter}
-【出力の詳細度】: {output_detail}
-
-【コード・テキスト】
-{code_input}"""
-        result = call_gpt(sys_prompt, user_prompt, model=model, temperature=0.2)
-        if result:
-            st.success("チェック完了！")
-            st.markdown("---")
-            st.markdown(result)
-            st.download_button("レポートをダウンロード", result,
-                               file_name="security_report.txt", mime="text/plain")
-
 # ─── 翻訳 ───────────────────────────────────────────────────────────────────
 def page_translate():
     st.markdown('<p class="tool-header">🌐 翻訳</p>', unsafe_allow_html=True)
@@ -919,7 +853,6 @@ pages = {
     "tone":      page_tone,
     "sns":       page_sns,
     "proofread": page_proofread,
-    "security":  page_security,
     "translate": page_translate,
 }
 pages[tool]()
